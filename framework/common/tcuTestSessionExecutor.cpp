@@ -220,7 +220,9 @@ bool TestSessionExecutor::enterTestCase(TestCase *testCase, const std::string &c
 #endif
     bool initOk = false;
 
-    print("\nTest case '%s'..\n", casePath.c_str());
+    static int run_case = 0;
+
+    print("\nTest case[%d] '%s'..\n", run_case++, casePath.c_str());
 
 #if (DE_OS == DE_OS_WIN32)
     fflush(stdout);

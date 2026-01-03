@@ -13,3 +13,12 @@
 *.ivf
 *.obu
 *.yuv
+
+
+/build/
+/build-debug/
+/build-gl/
+/build-glcts/
+
+
+/build-debug-main/
