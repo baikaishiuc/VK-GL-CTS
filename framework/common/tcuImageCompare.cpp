@@ -34,6 +34,7 @@
 #include "tcuFloat.hpp"
 
 #include <cmath>
+#include <stdio.h>
 
 namespace tcu
 {
@@ -157,6 +158,24 @@ static int findNumPositionDeviationFailingPixels(const PixelBufferAccess &errorM
 
                     if (!pixelFoundForReference)
                     {
+                        static int s_printed = 0;
+                        const int maxPrint = 8;
+                        if (s_printed < maxPrint)
+                        {
+                            const UVec4 diff0 = abs(refPix - cmpPix).cast<uint32_t>();
+
+                            // 注意：这里用 printf 最直接，但 CTS 推荐用 log。
+                            // 你如果不方便拿到 TestLog，这里就先 printf。
+                            printf("[CTS-CMP] FAIL(pixelFoundForReference=0) at (%d,%d,%d) (%d,%d,%d)\n", x, y, z, endX, endY, endZ);
+                            printf("    refPix = (%d,%d,%d,%d)\n", refPix.x(), refPix.y(), refPix.z(), refPix.w());
+                            printf("    cmpPix = (%d,%d,%d,%d)\n", cmpPix.x(), cmpPix.y(), cmpPix.z(), cmpPix.w());
+                            printf("    diff0  = (%u,%u,%u,%u)\n", diff0.x(), diff0.y(), diff0.z(), diff0.w());
+                            printf("    thr    = (%u,%u,%u,%u)\n", threshold.x(), threshold.y(), threshold.z(),
+                                   threshold.w());
+                            printf("    maxPosDev = (%d,%d,%d)\n", maxPositionDeviation.x(), maxPositionDeviation.y(),
+                                   maxPositionDeviation.z());
+                            s_printed++;
+                        }
                         errorMask.setPixel(errorColor, x, y, z);
                         ++numFailingPixels;
                         continue;
@@ -183,6 +202,7 @@ static int findNumPositionDeviationFailingPixels(const PixelBufferAccess &errorM
 
                     if (!pixelFoundForResult)
                     {
+
                         errorMask.setPixel(errorColor, x, y, z);
                         ++numFailingPixels;
                         continue;

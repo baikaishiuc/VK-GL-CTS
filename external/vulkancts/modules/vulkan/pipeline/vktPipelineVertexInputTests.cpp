@@ -703,11 +703,22 @@ void VertexInputTest::initPrograms(SourceCollections &programCollection) const
               << "  vec4 gl_Position;\n"
               << "};\n";
 
+              #if 0
+    vertexSrc << "uvec2 fp16_to_u8x2(float16_t x)\n"
+                << "{\n"
+                << "    uint u16 = float16BitsToUint16(x);\n"
+                << "    uint u8_0 = (u16 >> 8) & 0xFFu;\n"
+                << "    uint u8_1 = u16 & 0xFFu;\n"
+                << "    return uvec2(u8_0, u8_1);\n"
+                << "}\n";
+                #endif
+
     vertexSrc << "void main (void)\n"
               << "{\n"
               << getGlslVertexCheck() << "}\n";
 
     programCollection.glslSources.add("attribute_test_vert") << glu::VertexSource(vertexSrc.str());
+    printf("attribute_test_vert [%s]\n", vertexSrc.str().c_str());
 
     programCollection.glslSources.add("attribute_test_frag")
         << glu::FragmentSource("#version 460\n"
@@ -816,6 +827,7 @@ std::string VertexInputTest::getGlslVertexCheck(void) const
         inputCountStr = std::to_string(totalInputComponentCount);
     }
 
+    #if 0
     glslCode << "    if (okCount == " << inputCountStr
              << ")\n"
                 "    {\n"
@@ -845,6 +857,36 @@ std::string VertexInputTest::getGlslVertexCheck(void) const
                 "        else if (gl_VertexIndex == 3) gl_Position = vec4(1.0, 1.0, 0.0, 1.0);\n"
                 "        else gl_Position = vec4(0.0);\n"
                 "    }\n";
+    #else
+    glslCode <<
+                "float y = (float(attr0[1]) == float(0)) ? 1.0 : 0.0;\n"
+                //"float z = (abs(float(attr0[2])) < 1e-3) ? 1.0 : 0.0;\n"
+                //"float w = (abs(float(attr0[3]) - 1.0) < 1e-3) ? 1.0 : 0.0;\n"
+                //"vtxColor = vec4(y, z, w, 1.0); \n"
+                //"uvec2 b = fp16_to_u8x2(attr0.x);\n"
+                "vtxColor = vec4(float(attr0.x), y, float(attr0.w), 1.0);\n"
+                //"vtxColor = vec4(float(b.x) / 255.0, float(b.y) / 255.0, float(attr0.w), 1.0);\n"
+                //"vtxColor = attr0;\n"
+
+                //"    vtxColor = vec4(okCount / float(" << inputCountStr << "), 0.0, 0.0, 1.0);\n"
+                "    if (gl_InstanceIndex == 0)\n"
+                "    {\n"
+                "        if (gl_VertexIndex == 0) gl_Position = vec4(-1.0, -1.0, 0.0, 1.0);\n"
+                "        else if (gl_VertexIndex == 1) gl_Position = vec4(0.0, -1.0, 0.0, 1.0);\n"
+                "        else if (gl_VertexIndex == 2) gl_Position = vec4(-1.0, 1.0, 0.0, 1.0);\n"
+                "        else if (gl_VertexIndex == 3) gl_Position = vec4(0.0, 1.0, 0.0, 1.0);\n"
+                "        else gl_Position = vec4(0.0);\n"
+                "    }\n"
+                "    else\n"
+                "    {\n"
+                "        if (gl_VertexIndex == 0) gl_Position = vec4(0.0, -1.0, 0.0, 1.0);\n"
+                "        else if (gl_VertexIndex == 1) gl_Position = vec4(1.0, -1.0, 0.0, 1.0);\n"
+                "        else if (gl_VertexIndex == 2) gl_Position = vec4(0.0, 1.0, 0.0, 1.0);\n"
+                "        else if (gl_VertexIndex == 3) gl_Position = vec4(1.0, 1.0, 0.0, 1.0);\n"
+                "        else gl_Position = vec4(0.0);\n"
+                "    }\n";
+    #endif
+
 
     return glslCode.str();
 }
@@ -1410,8 +1452,8 @@ VertexInputInstance::VertexInputInstance(Context &context, const PipelineConstru
         if (vertexBuffers.size() <= 1)
         {
             // One vertex buffer
-            vk.cmdBindVertexBuffers(*m_cmdBuffer, 0, (uint32_t)vertexBuffers.size(), vertexBuffers.data(),
-                                    bindingOffsets.data());
+            vk.cmdBindVertexBuffers(*m_cmdBuffer, 0, (uint32_t)vertexBuffers.size(), vertexBuffers.data(), bindingOffsets.data());
+            //vk.cmdBindVertexBuffers(*m_cmdBuffer, 0, (uint32_t)vertexBuffers.size(), &fi.i, bindingOffsets.data());
         }
         else
         {
@@ -1664,8 +1706,13 @@ void VertexInputInstance::writeVertexInputValue(uint8_t *destPtr, const VertexIn
         {
             if (isVertexFormatSfloat(attribute.vkDescription.format))
             {
-                writeVertexInputValueSfloat(destPtr, attribute.vkDescription.format, componentNdx,
-                                            -(0.01f * (float)(vertexInputIndex + swizzledNdx)));
+                float v = (1.0f * (float)(vertexInputIndex + swizzledNdx));
+                //float v = 0.5f;
+                writeVertexInputValueSfloat(destPtr, attribute.vkDescription.format, componentNdx, v);
+                //memcpy(destPtr + 4, &v, sizeof (v));
+                //memcpy(destPtr + 8, &v, sizeof (v));
+                //memcpy(destPtr + 12, &v, sizeof (v));
+                printf("sfloat:%.2f\n", v);
             }
             else if (isVertexFormatUfloat(attribute.vkDescription.format))
             {
